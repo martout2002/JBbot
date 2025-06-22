@@ -13,6 +13,9 @@ import os
 import re
 from supabase import create_client, Client
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -95,13 +98,13 @@ def get_traffic_time(image_url, checkpoint=None):
     if checkpoint == "Woodlands":
         # Example crop box: (left, upper, right, lower)
         # Adjust these numbers based on your image!
-        crop_box = (1200, 100, 1800, 300)  # <-- Tweak as needed
+        crop_box = (1200, 200, 1700, 300)  # <-- Tweak as needed
         img = img.crop(crop_box)
         # img.show()
         
     if checkpoint == "Tuas":
         # Example crop box for Tuas
-        crop_box = (50, 310, 800, 450)
+        crop_box = (50, 330, 500, 450)
         img = img.crop(crop_box)
         # img.show()
         
