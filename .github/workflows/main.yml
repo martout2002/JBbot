@@ -1,0 +1,32 @@
+name: Deploy JBbot
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the bot
+        env:
+          TELEBOT_TOKEN: ${{ secrets.TELEBOT_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TUAS_CHECKPOINT_URL: ${{ secrets.TUAS_CHECKPOINT_URL }}
+          WOODLANDS_CHECKPOINT_URL: ${{ secrets.WOODLANDS_CHECKPOINT_URL }}
+        run: |
+          python main.py
