@@ -3,5 +3,5 @@ Pillow
 pytesseract
 requests
 schedule
-supabase-py==2.3.1
+supabase
 python-dotenv
