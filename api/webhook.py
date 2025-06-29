@@ -2,6 +2,8 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import logging
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import pytesseract
@@ -159,19 +161,50 @@ application.add_handler(CommandHandler("check", check_traffic))
 application.add_handler(CommandHandler("subscribe", subscribe))
 application.add_handler(CommandHandler("unsubscribe", unsubscribe))
 
+# Global executor for async operations
+executor = ThreadPoolExecutor(max_workers=1)
+
+async def process_telegram_update(update_data):
+    """Process a Telegram update asynchronously"""
+    try:
+        update = Update.de_json(update_data, application.bot)
+        await application.process_update(update)
+        return True
+    except Exception as e:
+        logger.error(f"Error processing update: {e}")
+        return False
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write('OK'.encode())
-        
-        # Process the update
-        update = Update.de_json(json.loads(post_data), application.bot)
-        application.process_update(update)
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            # Send response immediately
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write('OK'.encode())
+            
+            # Process the update
+            update_data = json.loads(post_data)
+            
+            # Try to process the update
+            try:
+                # Create new event loop for this request
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(process_telegram_update(update_data))
+                loop.close()
+            except Exception as e:
+                logger.error(f"Failed to process update: {e}")
+            
+        except Exception as e:
+            logger.error(f"Error in webhook handler: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(f'Error: {str(e)}'.encode())
 
     def do_GET(self):
         self.send_response(200)
