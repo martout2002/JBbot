@@ -13,8 +13,12 @@ import os
 import re
 from supabase import create_client, Client
 
-from dotenv import load_dotenv
-load_dotenv()
+# Try to load dotenv if available, but don't fail if it's not
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # Skip dotenv if not installed (will use environment variables directly)
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

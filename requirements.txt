@@ -4,3 +4,4 @@ pytesseract
 requests
 schedule
 supabase
+python-dotenv
