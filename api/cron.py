@@ -25,15 +25,28 @@ CHECKPOINTS = {
     "Woodlands": os.environ.get("WOODLANDS_CHECKPOINT_URL")
 }
 
-# Initialize Supabase
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize Supabase - with error handling
+supabase = None
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    logger.error(f"Error initializing Supabase: {e}")
+    # We'll continue without Supabase and handle errors in functions that use it
 
 # Global state to track previous times (will reset on each function execution, but that's okay)
 previous_times = {}
 
 def get_subscribers():
-    data = supabase.table("subscribers").select("user_id").execute()
-    return [row["user_id"] for row in data.data]
+    if supabase:
+        try:
+            data = supabase.table("subscribers").select("user_id").execute()
+            return [row["user_id"] for row in data.data]
+        except Exception as e:
+            logger.error(f"Error getting subscribers: {e}")
+            return []
+    else:
+        logger.warning("Supabase client not available, returning empty subscribers list")
+        return []
 
 async def bot_send_message(user_id, message):
     bot = Bot(token=TOKEN)
@@ -41,24 +54,33 @@ async def bot_send_message(user_id, message):
 
 def get_traffic_time(image_url, checkpoint=None):
     """Download image and extract only the 'time to JB' using OCR."""
-    import pytesseract
-    response = requests.get(image_url)
-    img = Image.open(BytesIO(response.content))
-    
-    if checkpoint == "Woodlands":
-        crop_box = (1200, 200, 1700, 300)
-        img = img.crop(crop_box)
+    try:
+        import pytesseract
+        response = requests.get(image_url)
+        img = Image.open(BytesIO(response.content))
         
-    if checkpoint == "Tuas":
-        crop_box = (50, 330, 500, 450)
-        img = img.crop(crop_box)
-    
-    # Preprocess image if needed (improve OCR accuracy)
-    img = img.convert('L')  # Convert to grayscale
-    img = img.point(lambda x: 0 if x < 128 else 255, '1')  # Thresholding
-    
-    # Use Tesseract to extract text
-    text = pytesseract.image_to_string(img, config='--psm 6')
+        if checkpoint == "Woodlands":
+            crop_box = (1200, 200, 1700, 300)
+            img = img.crop(crop_box)
+            
+        if checkpoint == "Tuas":
+            crop_box = (50, 330, 500, 450)
+            img = img.crop(crop_box)
+        
+        # Preprocess image if needed (improve OCR accuracy)
+        img = img.convert('L')  # Convert to grayscale
+        img = img.point(lambda x: 0 if x < 128 else 255, '1')  # Thresholding
+        
+        # Use Tesseract to extract text
+        try:
+            text = pytesseract.image_to_string(img, config='--psm 6')
+            logger.info(f"OCR output for {image_url}:\n{text}")
+        except Exception as e:
+            logger.error(f"Tesseract OCR error: {e}")
+            return "OCR error: Tesseract not available"
+    except Exception as e:
+        logger.error(f"Error processing image: {e}")
+        return f"Error: {str(e)}"
     logger.info(f"OCR output for {image_url}:\n{text}")
     
     # Use regex to extract only the 'time to JB' (e.g., '22 mins to JB')

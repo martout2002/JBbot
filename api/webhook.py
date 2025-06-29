@@ -27,8 +27,13 @@ CHECKPOINTS = {
     "Woodlands": os.environ.get("WOODLANDS_CHECKPOINT_URL")
 }
 
-# Initialize Supabase
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize Supabase - with error handling
+supabase = None
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    logger.error(f"Error initializing Supabase: {e}")
+    # We'll continue without Supabase and handle errors in functions that use it
 
 # Bot command functions
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -51,14 +56,34 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 def add_subscriber(user_id):
-    supabase.table("subscribers").insert({"user_id": user_id}).execute()
+    if supabase:
+        try:
+            supabase.table("subscribers").insert({"user_id": user_id}).execute()
+        except Exception as e:
+            logger.error(f"Error adding subscriber {user_id}: {e}")
+    else:
+        logger.warning("Supabase client not available, can't add subscriber")
 
 def remove_subscriber(user_id):
-    supabase.table("subscribers").delete().eq("user_id", user_id).execute()
+    if supabase:
+        try:
+            supabase.table("subscribers").delete().eq("user_id", user_id).execute()
+        except Exception as e:
+            logger.error(f"Error removing subscriber {user_id}: {e}")
+    else:
+        logger.warning("Supabase client not available, can't remove subscriber")
 
 def get_subscribers():
-    data = supabase.table("subscribers").select("user_id").execute()
-    return [row["user_id"] for row in data.data]
+    if supabase:
+        try:
+            data = supabase.table("subscribers").select("user_id").execute()
+            return [row["user_id"] for row in data.data]
+        except Exception as e:
+            logger.error(f"Error getting subscribers: {e}")
+            return []
+    else:
+        logger.warning("Supabase client not available, returning empty subscribers list")
+        return []
 
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
@@ -84,27 +109,35 @@ async def check_traffic(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 def get_traffic_time(image_url, checkpoint=None):
     """Download image and extract only the 'time to JB' using OCR."""
-    response = requests.get(image_url)
-    img = Image.open(BytesIO(response.content))
-    
-    if checkpoint == "Woodlands":
-        # Example crop box: (left, upper, right, lower)
-        # Adjust these numbers based on your image!
-        crop_box = (1200, 200, 1700, 300)  # <-- Tweak as needed
-        img = img.crop(crop_box)
+    try:
+        response = requests.get(image_url)
+        img = Image.open(BytesIO(response.content))
         
-    if checkpoint == "Tuas":
-        # Example crop box for Tuas
-        crop_box = (50, 330, 500, 450)
-        img = img.crop(crop_box)
-    
-    # Preprocess image if needed (improve OCR accuracy)
-    img = img.convert('L')  # Convert to grayscale
-    img = img.point(lambda x: 0 if x < 128 else 255, '1')  # Thresholding
-    
-    # Use Tesseract to extract text
-    text = pytesseract.image_to_string(img, config='--psm 6')
-    logger.info(f"OCR output for {image_url}:\n{text}")
+        if checkpoint == "Woodlands":
+            # Example crop box: (left, upper, right, lower)
+            # Adjust these numbers based on your image!
+            crop_box = (1200, 200, 1700, 300)  # <-- Tweak as needed
+            img = img.crop(crop_box)
+            
+        if checkpoint == "Tuas":
+            # Example crop box for Tuas
+            crop_box = (50, 330, 500, 450)
+            img = img.crop(crop_box)
+        
+        # Preprocess image if needed (improve OCR accuracy)
+        img = img.convert('L')  # Convert to grayscale
+        img = img.point(lambda x: 0 if x < 128 else 255, '1')  # Thresholding
+        
+        # Use Tesseract to extract text
+        try:
+            text = pytesseract.image_to_string(img, config='--psm 6')
+            logger.info(f"OCR output for {image_url}:\n{text}")
+        except Exception as e:
+            logger.error(f"Tesseract OCR error: {e}")
+            return "OCR error: Tesseract not available"
+    except Exception as e:
+        logger.error(f"Error processing image: {e}")
+        return f"Error: {str(e)}"
     
     # Use regex to extract only the 'time to JB' (e.g., '22 mins to JB')
     match = re.search(r'(\d+\s*min[s]? to JB)', text, re.IGNORECASE)
