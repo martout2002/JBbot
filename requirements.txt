@@ -1,7 +1,6 @@
-python-telegram-bot[webhooks]==20.7
+python-telegram-bot==20.7
 Pillow
 pytesseract
 requests
 schedule
 supabase
-python-dotenv
