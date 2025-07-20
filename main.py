@@ -7,7 +7,7 @@ from io import BytesIO
 import logging
 
 from telegram import Update, Bot
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler
 import pytesseract
 from PIL import Image
 import requests
