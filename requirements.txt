@@ -5,3 +5,4 @@ requests
 schedule
 supabase
 python-dotenv
+telegram

@@ -5,6 +5,7 @@ import time
 import threading
 from io import BytesIO
 import logging
+import asyncio
 
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler
@@ -18,7 +19,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format=
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -26,7 +28,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Telegram Bot Token
-TOKEN = os.environ.get("TELEBOT_TOKEN")  # Telegram Bot Token
+TOKEN = os.environ.get("TELEBOT_TOKEN")  # Bot token
 
 # Checkpoint URLs
 CHECKPOINTS = {
@@ -128,7 +130,7 @@ async def notify_subscribers(checkpoint, time_to_jb):
     for uid in subs:
         try:
             await bot_send_message(int(uid), message)
-        except Exception as e:
+        except Exception as e:  # Broad exception to avoid missing notifications
             logger.error("Failed to notify %s: %s", uid, e)
 
 async def bot_send_message(user_id, message):
@@ -145,7 +147,7 @@ def check_traffic_changes():
                 import asyncio
                 asyncio.run(notify_subscribers(checkpoint, current_time))
             previous_times[checkpoint] = current_time
-        except Exception as e:
+        except Exception as e:  # Broad exception to avoid missing traffic updates
             logger.error("Error monitoring %s: %s", checkpoint, e)
 
 def run_scheduler():
