@@ -26,7 +26,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Telegram Bot Token
-TOKEN = os.environ.get("TELEBOT_TOKEN")
+TOKEN = os.environ.get("TELEBOT_TOKEN")  # Telegram Bot Token
 
 # Checkpoint URLs
 CHECKPOINTS = {
@@ -40,7 +40,7 @@ previous_times = {
     "Woodlands": None
 }
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update) -> None:
     """Send a message when the command /start is issued."""
     await update.message.reply_text(
         "Welcome to SG-JB Traffic Bot!\n"
@@ -48,7 +48,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Type /help to see all available commands."
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help_command(update: Update) -> None:
     """Send a help message with all commands."""
     await update.message.reply_text(
         "Available commands:\n"
@@ -72,19 +72,19 @@ def get_subscribers():
     data = supabase.table("subscribers").select("user_id").execute()
     return [row["user_id"] for row in data.data]
 
-async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def subscribe(update: Update) -> None:
     """Subscribe the user to notifications."""
     user_id = update.effective_user.id
     add_subscriber(user_id)
     await update.message.reply_text("You have subscribed to traffic change notifications.")
 
-async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def unsubscribe(update: Update) -> None:
     """Unsubscribe the user from notifications."""
     user_id = update.effective_user.id
     remove_subscriber(user_id)
     await update.message.reply_text("You have unsubscribed from notifications.")
 
-async def check_traffic(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def check_traffic(update: Update) -> None:
     """Check current traffic conditions."""
     messages = []
     for checkpoint, url in CHECKPOINTS.items():
