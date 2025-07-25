@@ -41,6 +41,7 @@ previous_times = {
     "Tuas": None,
     "Woodlands": None
 }
+#test
 
 async def start(update: Update) -> None:
     """Send a message when the command /start is issued."""
