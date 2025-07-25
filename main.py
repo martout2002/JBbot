@@ -43,7 +43,7 @@ previous_times = {
 }
 #test
 #idk smth to test
-
+#gestsetes
 async def start(update: Update) -> None:
     """Send a message when the command /start is issued."""
     await update.message.reply_text(
